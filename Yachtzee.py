@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 class Yacht:
     def __init__(self):
@@ -6,35 +7,9 @@ class Yacht:
         self.choiced_dice = []
         self.rolled = []
         self.dice_max = 5
-        self.hands = {
-            "1":0, 
-            "2":0, 
-            "3":0, 
-            "4":0, 
-            "5":0, 
-            "6":0, 
-            "Choice":0,
-            "Four of a kind":0, 
-            "Full house":0, 
-            "S Straight":0,
-            "L Straight":0, 
-            "Yacht":0
-        }
-        self.score_board = {
-            "1":"-", 
-            "2":"-", 
-            "3":"-", 
-            "4":"-", 
-            "5":"-",
-            "6":"-",
-            "Bonus":"-",
-            "Choice":"-",
-            "Four of a kind":"-", 
-            "Full house":"-", 
-            "S Straight":"-",
-            "L Straight":"-",
-            "Yacht":"-"
-        }
+        self.keys = "1/2/3/4/5/6/Choice/Four of a kind/Full house/S Straight/L Straight/Yacht".split("/")
+        self.hands = {key:0 for key in self.keys}
+        self.score_board = {key:"-" for key in self.keys+["Bonus"]}
 
     def roll(self):
         self.choiced_dice = []
@@ -52,20 +27,7 @@ class Yacht:
         
     def check(self):
         self.dices.sort()
-        self.hands = {
-            "1":0, 
-            "2":0, 
-            "3":0, 
-            "4":0, 
-            "5":0, 
-            "6":0, 
-            "Choice":0,
-            "Four of a kind":0, 
-            "Full house":0, 
-            "S Straight":0,
-            "L Straight":0, 
-            "Yacht":0
-        }
+        self.hands = {key:0 for key in self.keys}
         
         # 1〜6
         for i in range(6):
@@ -76,44 +38,32 @@ class Yacht:
         self.hands["Choice"] = sum(self.dices)
         
         # four of a kind
-        for i in reversed(range(6)):
-            diceNum = i + 1
-            if self.dices.count(diceNum) >= 4:
-                self.hands["Four of a kind"] = sum(self.dices)
-                break
+        if(max(sorted(Counter(self.dices).values()))>= 4):
+            self.hands["Four of a kind"] = sum(self.dices)
         
         # full house
-        for i in reversed(range(6)):
-            diceNumThree = i + 1
-            if self.dices.count(diceNumThree) == 3:
-                for i in reversed(range(6)):
-                    diceNumTwo = i + 1
-                    if self.dices.count(diceNumTwo) == 2:
-                        self.hands["Full house"] = sum(self.dices)
-                        break
-                break
+        if(sorted(Counter(self.dices).values()) == [2, 3]):
+            self.hands["Full house"] = sum(self.dices)
         
         # S straight / L straight
         joined = "".join(map(str, list(set(self.dices))))
-        is_LS = "12345" in joined or "23456" in joined
-        is_SS = is_LS or ("1234" in joined or "2345" in joined or "3456" in joined)
+        is_LS = any(ls in joined for ls in ["12345","23456"])
+        is_SS = is_LS or any(ss in joined for ss in ["1234","2345","3456"])
         if is_LS:
             self.hands["L Straight"] = 30
         if is_SS:
             self.hands["S Straight"] = 15
             
         # Yacht
-        for i in reversed(range(6)):
-            diceNum = i + 1
-            if self.dices.count(diceNum) == 5:
-                self.hands["Yacht"] = 50
+        if any(self.dices.count(i+1) == 5 for i in reversed(range(6))):
+            self.hands["Yacht"] = 50
                 
     def check_bonus(self):
         if self.score_board["Bonus"] != "-":
             return
         
         sum = 0
-        for k in [f"{i}" for i in range(6)]:
+        for k in [f"{i+1}" for i in range(6)]:
             if self.score_board[k] == "-":
                 continue
             else:
@@ -121,6 +71,8 @@ class Yacht:
         
         if sum >= 63:
             self.score_board["Bonus"] = "35"
+            
+            
                         
 def title():
     print("input command ▼")
@@ -132,20 +84,23 @@ def title():
         print("start!")
 
 def ingame(game: Yacht):
+    print("\n----------------------------")
     input("press Enter to Roll ▼")
     game.roll()
     print(game.dices)
     rr_limit = 3
     while rr_limit > 0:
-        print("----------------------------")
+        print("\n----------------------------")
         print("reroll, choice or decide ▼")
         print("input 'd' and Enter. dices decide ▼")
         print("input 'c {num} {num} ....' and Enter. dices choiced and reroll ▼")
         print("input 'r' and Enter. dices not choiced and reroll ▼")
         val = input()
+        print("\n----------------------------")
         if val == "r":
-            game.reroll()
-            print("reroll: " + game.rolled)
+            game.reroll(game.dice_max)
+            print("reroll:")
+            print(game.dices)
             rr_limit -= 1
         if val == "d":
             break
@@ -159,10 +114,13 @@ def ingame(game: Yacht):
             rr_limit -= 1
             
     game.check()
-    print("----------------------------")
+    print("\n----------------------------")
     num = 1
-    for h in yachtGame.hands.items():
-        print(f"{num} : {h}")
+    for h in game.hands.items():
+        if game.score_board[h[0]] == "-":
+            print(f"{num} : {h}")
+        else:
+            print(f"{num} : decided")
         num += 1
         
     print("Please decide hands(number) ▼")
@@ -170,22 +128,25 @@ def ingame(game: Yacht):
     item = list(game.hands.items())[int(val)-1]
     game.score_board[item[0]] = f"{item[1]}"
     game.check_bonus()
-    print("----------------------------")
+    print("\n----------------------------")
     print("current score:")
-    for s in yachtGame.score_board.items():
+    for s in game.score_board.items():
         print(s)
+        
+    if game.score_board["Bonus"] == "-" and list(game.score_board.values()).count("-") == 1:
+        game.score_board["Bonus"] = "0"
                 
+
 yachtGame = Yacht()
 game_mode = 0
-while len(yachtGame.score_board) < 13:
+while "-" in yachtGame.score_board.values():
     if game_mode == 0:
         title()
         game_mode = 1
     if game_mode == 1:
         ingame(yachtGame)
-
-print("----------------------------")
-print("finish!")
-print("score:")
+print("\n----------------------------")
+print("total score:")
 for s in yachtGame.score_board.items():
     print(s)
+print(f'total points: {sum([int(a) for a in yachtGame.score_board.values() if a != "-"])} / 323')
