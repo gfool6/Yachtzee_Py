@@ -57,6 +57,10 @@ class Yacht:
         # Yacht
         if any(self.dices.count(i+1) == 5 for i in reversed(range(6))):
             self.hands["Yacht"] = 50
+    
+    def score_decide(self, index):
+        item = list(self.hands.items())[index]
+        self.score_board[item[0]] = f"{item[1]}"
                 
     def check_bonus(self):
         if self.score_board["Bonus"] != "-":
@@ -72,6 +76,12 @@ class Yacht:
         if sum >= 63:
             self.score_board["Bonus"] = "35"
             
+        if self.score_board["Bonus"] == "-" and list(self.score_board.values()).count("-") == 1:
+            self.score_board["Bonus"] = "0"
+            
+    def print_score(self):
+        for s in self.score_board.items():
+            print(s)
             
                         
 def title():
@@ -125,17 +135,12 @@ def ingame(game: Yacht):
         
     print("Please decide hands(number) ▼")
     val = input()
-    item = list(game.hands.items())[int(val)-1]
-    game.score_board[item[0]] = f"{item[1]}"
+    game.score_decide(int(val)-1)
     game.check_bonus()
     print("\n----------------------------")
     print("current score:")
-    for s in game.score_board.items():
-        print(s)
-        
-    if game.score_board["Bonus"] == "-" and list(game.score_board.values()).count("-") == 1:
-        game.score_board["Bonus"] = "0"
-                
+    game.print_score()
+    
 
 yachtGame = Yacht()
 game_mode = 0
@@ -147,6 +152,5 @@ while "-" in yachtGame.score_board.values():
         ingame(yachtGame)
 print("\n----------------------------")
 print("total score:")
-for s in yachtGame.score_board.items():
-    print(s)
-print(f'total points: {sum([int(a) for a in yachtGame.score_board.values() if a != "-"])} / 323')
+yachtGame.print_score()
+print(f'\ntotal points: {sum([int(a) for a in yachtGame.score_board.values() if a != "-"])} / 323')
